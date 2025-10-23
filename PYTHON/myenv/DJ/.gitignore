@@ -1,0 +1,20 @@
+# Python virtual environment (your local sandbox)
+myenv/
+.venv/
+venv/
+.env
+
+# Compiled files and cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Optional: Exclude large data files often not needed on the host
+# UNCOMMENT the lines below if these CSV files are very large (over 50MB)
+sachet_main_cases_2M.csv
+sachet_sightings_log_2M.csv
