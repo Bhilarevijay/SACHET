@@ -43,7 +43,7 @@ class CaseInput(BaseModel):
     day_of_week: int = Field(..., ge=0, le=6)
     region_type: str
     population_density: int
-    transport_hub_nearby: int = Field(..., ge=0, ge=1) # 1 for Yes, 0 for No
+    transport_hub_nearby: int = Field(..., ge=0, le=1) # 1 for Yes, 0 for No
 
 class Sighting(BaseModel):
     """Schema for a single sighting update."""
