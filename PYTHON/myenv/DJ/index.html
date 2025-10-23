@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sachet: Predictive Alert System</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20n69zM4J4Xb5zUoG9z1eLpG8C/891W5h0a5iL/c4A="
+     crossorigin=""></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #0d1117; }
+        #map { height: 600px; width: 100%; border-radius: 0.5rem; }
+        .metric-card { min-height: 100px; }
+        .leaflet-marker-icon.fa-icon { border: 2px solid white; border-radius: 50%; }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-7xl mx-auto">
+        <header class="text-center pb-8 border-b border-gray-700">
+            <h1 class="text-4xl font-extrabold text-red-500">
+                <i class="fas fa-bell mr-2"></i> Sachet: Predictive Alert System
+            </h1>
+            <p class="text-gray-400 mt-2">ML-powered hotspot prediction and location refinement.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6">
+            
+            <!-- LEFT COLUMN: Input Controls (Col 1-2) -->
+            <div class="lg:col-span-2 bg-gray-800 p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-bold text-gray-200 mb-4">Case Controls</h2>
+                <form id="case-form" class="space-y-4 text-gray-300">
+                    
+                    <!-- Child & Abduction Info -->
+                    <div class="border-b border-gray-700 pb-4">
+                        <h3 class="text-lg font-semibold text-gray-400 mb-2">Child & Abduction Details</h3>
+                        <label class="block">Child Age: <span id="age-value" class="font-medium text-red-400">9</span></label>
+                        <input type="range" id="child_age" min="1" max="18" value="9" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+                        
+                        <label for="child_gender" class="block mt-2">Gender:</label>
+                        <select id="child_gender" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600 text-white">
+                            <option value="F">F</option>
+                            <option value="M" selected>M</option>
+                        </select>
+                        
+                        <label class="block mt-2">Abduction Time (24h): <span id="hour-value" class="font-medium text-red-400">18</span></label>
+                        <input type="range" id="abduction_time" min="0" max="23" value="18" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+                        
+                        <label class="block mt-2">Day of Week (Mon=0): <span id="dow-value" class="font-medium text-red-400">4</span></label>
+                        <input type="range" id="day_of_week" min="0" max="6" value="4" class="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer">
+                    </div>
+
+                    <!-- Location & Context -->
+                    <div class="border-b border-gray-700 pb-4">
+                        <h3 class="text-lg font-semibold text-gray-400 mb-2">Location & Context</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="latitude" class="block">Latitude:</label>
+                                <input type="number" step="any" id="latitude" value="18.5203" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600">
+                            </div>
+                            <div>
+                                <label for="longitude" class="block">Longitude:</label>
+                                <input type="number" step="any" id="longitude" value="73.8567" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600">
+                            </div>
+                        </div>
+                        
+                        <label for="region_type" class="block mt-2">Region Type:</label>
+                        <select id="region_type" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600 text-white">
+                            <option value="Urban">Urban</option>
+                            <option value="Rural">Rural</option>
+                            <option value="Suburban">Suburban</option>
+                        </select>
+
+                        <label for="population_density" class="block mt-2">Population Density:</label>
+                        <input type="number" id="population_density" value="8000000" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600">
+                    </div>
+
+                    <!-- Abductor Info -->
+                    <div class="border-b border-gray-700 pb-4">
+                        <h3 class="text-lg font-semibold text-gray-400 mb-2">Abductor Info</h3>
+                        <label for="transport_hub_nearby" class="block">Transport Hub Nearby:</label>
+                        <select id="transport_hub_nearby" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600 text-white">
+                            <option value="1">Yes</option>
+                            <option value="0" selected>No</option>
+                        </select>
+                        <label for="abductor_relation" class="block mt-2">Abductor Relation:</label>
+                        <select id="abductor_relation" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600 text-white">
+                            <option value="Stranger" selected>Stranger</option>
+                            <option value="Family">Family</option>
+                            <option value="Acquaintance">Acquaintance</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="predict-button" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200">
+                        <i class="fas fa-magic mr-2"></i> Predict Initial Hotspot
+                    </button>
+                    <div id="status-message" class="text-center text-sm mt-2 text-yellow-400"></div>
+                </form>
+
+                <!-- Sighting Form (Hidden initially) -->
+                <div id="sighting-container" class="mt-6 border border-yellow-500 rounded-xl p-4 hidden">
+                    <h2 class="text-xl font-bold text-yellow-400 mb-3">🕵️ Log Live Sighting</h2>
+                    <form id="sighting-form" class="space-y-3 text-gray-300">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="sighting_lat" class="block">Sighting Lat:</label>
+                                <input type="number" step="any" id="sighting_lat" value="18.5703" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600">
+                            </div>
+                            <div>
+                                <label for="sighting_lon" class="block">Sighting Lon:</label>
+                                <input type="number" step="any" id="sighting_lon" value="73.9067" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600">
+                            </div>
+                        </div>
+                        <label for="sighting_hours" class="block">Hours Since Abduction:</label>
+                        <input type="number" step="0.1" id="sighting_hours" value="16.0" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600">
+                        <label for="sighting_text" class="block">Direction/Description:</label>
+                        <input type="text" id="sighting_text" value="Seen moving North on highway" class="w-full p-2 rounded-lg bg-gray-700 border border-gray-600">
+                        
+                        <button type="submit" id="refine-button" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200">
+                            <i class="fas fa-location-arrow mr-2"></i> Add & Refine Location
+                        </button>
+                    </form>
+                    <div id="logged-sightings" class="mt-4 text-sm max-h-32 overflow-y-auto space-y-1">
+                        <p class="text-gray-500">Logged Sightings:</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Metrics and Map (Col 3-5) -->
+            <div class="lg:col-span-3 space-y-6">
+                <!-- Metrics Bar -->
+                <div class="grid grid-cols-3 gap-4" id="metrics-bar">
+                    <div class="metric-card bg-gray-800 p-4 rounded-xl shadow-lg text-center">
+                        <div class="text-sm font-semibold text-gray-400">Risk Level</div>
+                        <div id="metric-risk" class="text-3xl font-bold text-red-500 mt-1">--</div>
+                        <div id="metric-risk-conf" class="text-xs text-gray-500">Confidence: --</div>
+                    </div>
+                    <div class="metric-card bg-gray-800 p-4 rounded-xl shadow-lg text-center">
+                        <div class="text-sm font-semibold text-gray-400">Recovery Probability</div>
+                        <div id="metric-recovery" class="text-3xl font-bold text-green-500 mt-1">--</div>
+                    </div>
+                    <div class="metric-card bg-gray-800 p-4 rounded-xl shadow-lg text-center">
+                        <div class="text-sm font-semibold text-gray-400">Est. Recovery Time</div>
+                        <div id="metric-time" class="text-3xl font-bold text-yellow-500 mt-1">--</div>
+                        <div class="text-xs text-gray-500">Hours</div>
+                    </div>
+                </div>
+
+                <!-- Map Container -->
+                <div id="map-card" class="bg-gray-800 p-2 rounded-xl shadow-lg">
+                    <div id="map"></div>
+                    <p id="map-status" class="text-center text-sm pt-2 text-gray-400">Map Initialized. Waiting for prediction...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const API_BASE_URL = "YOUR_LIVE_RENDER_API_URL_HERE"; // IMPORTANT: REPLACE THIS
+        
+        // --- GLOBAL STATE ---
+        let map;
+        let predictionState = {
+            initialCaseInput: null,
+            prediction: null,
+            sightings: [],
+            refinedLocation: null
+        };
+        
+        // --- MAP FUNCTIONS ---
+        function initMap() {
+            // Check if map object exists in DOM
+            const mapContainer = document.getElementById('map');
+            if (mapContainer._leaflet_id) {
+                map.remove();
+            }
+            map = L.map('map').setView([18.5203, 73.8567], 8); // Default to Pune, India
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+            document.getElementById('map-status').textContent = 'Map Ready.';
+            return map;
+        }
+
+        function updateMap(isRefined = false) {
+            if (!map) map = initMap();
+            
+            // Clear existing markers/circles/polylines
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker || layer instanceof L.Circle || layer instanceof L.Polyline) {
+                    map.removeLayer(layer);
+                }
+            });
+
+            const initialLat = parseFloat(document.getElementById('latitude').value);
+            const initialLon = parseFloat(document.getElementById('longitude').value);
+            const pred = predictionState.prediction;
+            
+            // 1. Plot Last Seen Location
+            L.marker([initialLat, initialLon], {
+                icon: L.icon({
+                    iconUrl: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%233b82f6" width="24px" height="24px"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 24],
+                    popupAnchor: [0, -15]
+                })
+            }).bindPopup("Last Seen Location").addTo(map);
+
+            // 2. Plot Predicted Hotspot
+            let pLat, pLon, color, iconClass, label;
+            if (isRefined && predictionState.refinedLocation) {
+                [pLat, pLon] = predictionState.refinedLocation;
+                color = '#9333ea'; // Purple for refined
+                iconClass = 'fas fa-bullseye';
+                label = 'REFINED Hotspot';
+            } else if (pred) {
+                pLat = pred.predicted_latitude;
+                pLon = pred.predicted_longitude;
+                color = '#ef4444'; // Red for initial
+                iconClass = 'fas fa-star';
+                label = 'INITIAL Predicted Hotspot';
+            }
+
+            if (pred) {
+                L.marker([pLat, pLon], {
+                    icon: L.divIcon({
+                        className: 'fa-icon',
+                        html: `<i class="${iconClass} text-xl" style="color:${color};"></i>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                    })
+                }).bindPopup(label).addTo(map);
+
+                // Add search radius circle
+                const radius_m = Math.max(500, 15000 * (1 - pred.recovered_prob));
+                L.circle([pLat, pLon], {
+                    radius: radius_m,
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.2
+                }).bindPopup(`Primary Search Radius: ${Math.round(radius_m / 1000)} km`).addTo(map);
+                
+                // Adjust map view to fit markers
+                const bounds = new L.LatLngBounds([initialLat, initialLon], [pLat, pLon]);
+                map.fitBounds(bounds.pad(0.1));
+            }
+
+            // 3. Plot Sightings
+            if (predictionState.sightings.length > 0) {
+                const sightingCoords = [[initialLat, initialLon]];
+                predictionState.sightings.forEach(s => sightingCoords.push([s.lat, s.lon]));
+                
+                L.polyline(sightingCoords, {
+                    color: '#f97316', // Orange
+                    weight: 3,
+                    opacity: 0.8,
+                    dashArray: '10, 10'
+                }).addTo(map);
+
+                predictionState.sightings.forEach(s => {
+                    L.marker([s.lat, s.lon], {
+                        icon: L.divIcon({
+                            className: 'fa-icon',
+                            html: `<i class="fas fa-eye text-lg" style="color:#f97316;"></i>`,
+                            iconSize: [24, 24],
+                            iconAnchor: [12, 12]
+                        })
+                    }).bindPopup(`Sighting @ ${s.hours_since}h: ${s.direction_text}`).addTo(map);
+                });
+            }
+
+            // 4. Plot Historical Hotspots (Basic)
+            fetchHistoricalHotspots();
+        }
+
+        function fetchHistoricalHotspots() {
+            if (API_BASE_URL === "YOUR_LIVE_RENDER_API_URL_HERE") {
+                console.warn("API URL not set. Skipping historical data fetch.");
+                return;
+            }
+
+            fetch(`${API_BASE_URL}/historical_hotspots`)
+                .then(response => response.json())
+                .then(hotspots => {
+                    hotspots.forEach(([lat, lon, risk]) => {
+                        L.circleMarker([lat, lon], {
+                            radius: 4,
+                            color: '#9ca3af', // Gray/Historical
+                            fillColor: '#9ca3af',
+                            fillOpacity: 0.5,
+                            weight: 1
+                        }).bindPopup('Historical Recovery Point').addTo(map);
+                    });
+                })
+                .catch(error => console.error("Error fetching historical data:", error));
+        }
+
+        function updateMetrics(prediction) {
+            const riskMap = {0: "LOW", 1: "MEDIUM", 2: "HIGH"};
+            const colorMap = {0: "text-green-500", 1: "text-yellow-500", 2: "text-red-500"};
+            
+            const riskLabel = riskMap[prediction.risk_label] || 'N/A';
+            const riskColor = colorMap[prediction.risk_label] || 'text-gray-500';
+
+            document.getElementById('metric-risk').textContent = riskLabel;
+            document.getElementById('metric-risk').className = `text-3xl font-bold mt-1 ${riskColor}`;
+            document.getElementById('metric-risk-conf').textContent = `Confidence: ${(prediction.risk_prob * 100).toFixed(1)}%`;
+            document.getElementById('metric-recovery').textContent = `${(prediction.recovered_prob * 100).toFixed(1)}%`;
+            document.getElementById('metric-time').textContent = `~${Math.round(prediction.recovery_time_hours)}`;
+
+            document.getElementById('map-status').textContent = `Initial Prediction complete. Hotspot at Lat: ${prediction.predicted_latitude.toFixed(4)}, Lon: ${prediction.predicted_longitude.toFixed(4)}`;
+            document.getElementById('sighting-container').classList.remove('hidden');
+        }
+
+        function setButtonLoading(isLoading, buttonId) {
+            const button = document.getElementById(buttonId);
+            if (isLoading) {
+                button.disabled = true;
+                button.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Processing...`;
+            } else {
+                button.disabled = false;
+                button.innerHTML = buttonId === 'predict-button' ? `<i class="fas fa-magic mr-2"></i> Predict Initial Hotspot` : `<i class="fas fa-location-arrow mr-2"></i> Add & Refine Location`;
+            }
+        }
+
+        // --- FETCH HANDLERS ---
+        document.getElementById('case-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            setButtonLoading(true, 'predict-button');
+            document.getElementById('status-message').textContent = 'Sending data to ML API...';
+
+            // Gather input data
+            const inputData = {
+                child_age: parseInt(document.getElementById('child_age').value),
+                child_gender: document.getElementById('child_gender').value,
+                abduction_time: parseInt(document.getElementById('abduction_time').value),
+                abductor_relation: document.getElementById('abductor_relation').value,
+                latitude: parseFloat(document.getElementById('latitude').value),
+                longitude: parseFloat(document.getElementById('longitude').value),
+                day_of_week: parseInt(document.getElementById('day_of_week').value),
+                region_type: document.getElementById('region_type').value,
+                population_density: parseInt(document.getElementById('population_density').value),
+                transport_hub_nearby: parseInt(document.getElementById('transport_hub_nearby').value),
+            };
+
+            fetch(`${API_BASE_URL}/predict_initial`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(inputData)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                predictionState.prediction = data;
+                predictionState.initialCaseInput = inputData;
+                predictionState.sightings = [];
+                predictionState.refinedLocation = null;
+                updateMetrics(data);
+                updateMap(false);
+                document.getElementById('status-message').textContent = 'Prediction received successfully.';
+            })
+            .catch(error => {
+                console.error("API Error:", error);
+                document.getElementById('status-message').textContent = `Error: ${error.message}. Check console/API logs.`;
+            })
+            .finally(() => {
+                setButtonLoading(false, 'predict-button');
+            });
+        });
+
+        document.getElementById('sighting-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            setButtonLoading(true, 'refine-button');
+            document.getElementById('status-message').textContent = 'Adding sighting and initiating refinement...';
+
+            const newSighting = {
+                lat: parseFloat(document.getElementById('sighting_lat').value),
+                lon: parseFloat(document.getElementById('sighting_lon').value),
+                hours_since: parseFloat(document.getElementById('sighting_hours').value),
+                direction_text: document.getElementById('sighting_text').value,
+            };
+            predictionState.sightings.push(newSighting);
+            
+            // Update sightings list display
+            const listContainer = document.getElementById('logged-sightings');
+            listContainer.innerHTML += `<p class="text-gray-400">#${predictionState.sightings.length}: Lat ${newSighting.lat.toFixed(3)}, Lon ${newSighting.lon.toFixed(3)}</p>`;
+
+            const refinementData = {
+                initial_prediction: predictionState.prediction,
+                sightings: predictionState.sightings,
+                initial_case_input: predictionState.initialCaseInput
+            };
+
+            fetch(`${API_BASE_URL}/refine_location`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(refinementData)
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                return response.json();
+            })
+            .then(coords => {
+                predictionState.refinedLocation = coords;
+                updateMap(true);
+                document.getElementById('map-status').textContent = `REFINEMENT complete. Hotspot moved to Lat: ${coords[0].toFixed(4)}, Lon: ${coords[1].toFixed(4)}`;
+                document.getElementById('status-message').textContent = 'Refined location received successfully.';
+            })
+            .catch(error => {
+                console.error("Refinement API Error:", error);
+                document.getElementById('status-message').textContent = `Refinement Error: ${error.message}. Check console/API logs.`;
+            })
+            .finally(() => {
+                setButtonLoading(false, 'refine-button');
+            });
+        });
+
+
+        // --- UI INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            // Connect range sliders to output display
+            document.getElementById('child_age').addEventListener('input', (e) => document.getElementById('age-value').textContent = e.target.value);
+            document.getElementById('abduction_time').addEventListener('input', (e) => document.getElementById('hour-value').textContent = e.target.value);
+            document.getElementById('day_of_week').addEventListener('input', (e) => document.getElementById('dow-value').textContent = e.target.value);
+        });
+
+    </script>
+</body>
+</html>
