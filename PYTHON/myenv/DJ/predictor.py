@@ -203,6 +203,7 @@ import pandas as pd
 import numpy as np
 import sys
 from typing import Dict, Any, List, Tuple
+import torch.nn as nn
 
 # --- GLOBAL MODEL REFERENCES (Set to None initially) ---
 # These will be loaded only when first accessed.
